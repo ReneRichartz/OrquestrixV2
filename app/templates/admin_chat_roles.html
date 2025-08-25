@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Chat Rollen</h1>
+{% set allowed_models = ['o3-pro','o4-mini','o3-mini'] %}
+{% if edit_role %}
+<div class="card" style="margin-bottom:1rem; padding:0.8rem;">
+  <div class="card-header">Rolle bearbeiten (#{{ edit_role.id }})</div>
+  <form method="post" action="{{ url_for('admin.chat_roles_update', role_id=edit_role.id) }}" class="col" style="gap:.5rem;">
+    <div class="flex gap-sm" style="align-items:center;">
+      <input type="text" name="name" placeholder="Name" value="{{ edit_role.name }}" required />
+      <select name="model" required>
+        {% for m in allowed_models %}
+          <option value="{{ m }}" {% if edit_role.model==m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+        {% if edit_role.model not in allowed_models %}
+          <option value="{{ edit_role.model }}" selected>{{ edit_role.model }}</option>
+        {% endif %}
+      </select>
+      <div style="display:flex; flex-direction:column; font-size:0.6rem; line-height:1.1;">
+        <label style="font-weight:600;">Temp <span id="edit_temp_val">{{ '%.2f'|format(edit_role.temperature) }}</span></label>
+        <input type="range" min="0" max="1" step="0.01" name="temperature" value="{{ '%.2f'|format(edit_role.temperature) }}" oninput="document.getElementById('edit_temp_val').innerText=this.value" />
+      </div>
+    </div>
+    <textarea name="instructions" rows="3" style="width:100%;" required>{{ edit_role.instructions }}</textarea>
+    <div class="flex gap-sm" style="justify-content:space-between;">
+      <div>
+        <a href="{{ url_for('admin.chat_roles_list') }}" class="subtle" style="font-size:0.7rem;">Abbrechen</a>
+      </div>
+      <div>
+        <button type="submit">Speichern</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% else %}
+<form method="post" action="{{ url_for('admin.chat_roles_create') }}" style="margin-bottom:1rem;">
+  <div class="flex gap-sm" style="align-items:center;">
+    <input type="text" name="name" placeholder="Name" required />
+    <select name="model" required>
+      {% for m in allowed_models %}
+        <option value="{{ m }}">{{ m }}</option>
+      {% endfor %}
+    </select>
+    <div style="display:flex; flex-direction:column; font-size:0.6rem; line-height:1.1;">
+      <label style="font-weight:600;">Temp <span id="create_temp_val">0.70</span></label>
+      <input type="range" min="0" max="1" step="0.01" name="temperature" value="0.70" oninput="document.getElementById('create_temp_val').innerText=this.value" />
+    </div>
+  </div>
+  <textarea name="instructions" rows="3" style="width:100%;" placeholder="Rollen-Instructions" required></textarea>
+  <button type="submit">Anlegen</button>
+</form>
+{% endif %}
+<table class="list">
+  <thead><tr><th>ID</th><th>Name</th><th>Model</th><th>Temp</th><th>Chats</th><th>Aktionen</th></tr></thead>
+  <tbody>
+  {% for r in roles %}
+    <tr>
+      <td>{{ r.id }}</td>
+  <td><a href="{{ url_for('admin.chat_roles_edit', role_id=r.id) }}">{{ r.name }}</a></td>
+  <td>{{ r.model }}</td>
+  <td>{{ '%.2f'|format(r.temperature or 0) }}</td>
+      <td>{{ r.chats.count() }}</td>
+      <td>
+        <form method="post" action="{{ url_for('admin.chat_roles_delete', role_id=r.id) }}" style="display:inline;" onsubmit="return confirm('Löschen?');">
+          <button type="submit">Del</button>
+        </form>
+        <a href="{{ url_for('admin.chat_roles_edit', role_id=r.id) }}" style="font-size:0.65rem; margin-left:4px;">Edit</a>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6">Keine Rollen</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p><a href="{{ url_for('admin.index') }}">Zurück Admin</a></p>
+{% endblock %}

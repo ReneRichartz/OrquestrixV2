@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Chats</h1>
+<form method="post" action="/chats/create">
+  <input type="text" name="title" placeholder="Chat Titel" />
+  <button type="submit">Neu</button>
+</form>
+<table class="list">
+  <thead>
+    <tr><th>ID</th><th>Titel</th><th>Erstellt</th><th>Aktionen</th></tr>
+  </thead>
+  <tbody>
+    {% for c in chats %}
+      <tr onclick="window.location='/chats/{{ c.id }}'" style="cursor:pointer;">
+        <td>{{ c.id }}</td>
+        <td>{{ c.title }}</td>
+        <td>{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>
+          <form method="post" action="/chats/{{ c.id }}/delete" onclick="event.stopPropagation();" style="display:inline;">
+            <button type="submit">Löschen</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="pagination">
+  {% if pagination.has_prev %}<a href="?page={{ pagination.prev_num }}">Zurück</a>{% endif %}
+  Seite {{ pagination.page }} / {{ pagination.pages }}
+  {% if pagination.has_next %}<a href="?page={{ pagination.next_num }}">Weiter</a>{% endif %}
+</div>
+{% endblock %}

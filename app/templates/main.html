@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 style="margin-top:0; font-size:1.15rem;">Übersicht</h1>
+<div class="flex gap" style="align-items:stretch;">
+  <!-- Projekte links -->
+  <div class="card grow" style="flex:1; min-width:420px;">
+    <div class="card-header">Projekte</div>
+    <form method="post" action="/projects/create" class="inline" style="margin-bottom:0.6rem;">
+      <input type="text" name="name" placeholder="Neues Projekt" />
+      <button class="subtle" type="submit">+ Anlegen</button>
+    </form>
+    <div class="divider"></div>
+    <table class="list" style="margin-top:0;">
+      <thead><tr><th>Name</th><th>Erstellt</th><th>Chats</th></tr></thead>
+      <tbody>
+        {% for p in last_projects %}
+          <tr onclick="window.location='/projects/{{ p.id }}'" style="cursor:pointer;">
+            <td>{{ p.name }}</td>
+            <td style="white-space:nowrap;">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '' }}</td>
+            <td>{{ p.chats.count() }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="3">Keine Projekte</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div style="text-align:right; margin-top:0.4rem;">
+      <a href="/projects/" style="font-size:0.7rem;">alle Projekte →</a>
+    </div>
+  </div>
+  <!-- Chats rechts -->
+  <div class="card grow" style="flex:1; min-width:420px;">
+    <div class="card-header">Chats</div>
+    <form method="post" action="/chats/create" class="inline" style="margin-bottom:0.6rem;">
+      <input type="text" name="title" placeholder="Neuer Chat" />
+      <button class="subtle" type="submit">+ Anlegen</button>
+    </form>
+    <div class="divider"></div>
+    <table class="list" style="margin-top:0;">
+      <thead><tr><th>Titel</th><th>Erstellt</th><th>Nachrichten</th></tr></thead>
+      <tbody>
+        {% for c in last_chats %}
+          <tr onclick="window.location='/chats/{{ c.id }}'" style="cursor:pointer;">
+            <td>{{ c.title }}</td>
+            <td style="white-space:nowrap;">{{ c.created_at.strftime('%Y-%m-%d') if c.created_at else '' }}</td>
+            <td>{{ c.messages.count() }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="3">Keine Chats</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div style="text-align:right; margin-top:0.4rem;">
+      <a href="/chats/" style="font-size:0.7rem;">alle Chats →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

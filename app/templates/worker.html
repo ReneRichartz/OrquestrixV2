@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 style="margin-top:0; font-size:1.05rem;">Worker</h1>
+<div class="flex gap" style="align-items:stretch;">
+	<!-- Linke Spalte: Anlegen + Liste -->
+	<div class="card" style="flex-basis:32%; min-width:280px;">
+		<div class="card-header">Neuer Worker</div>
+		<form method="post" action="{{ url_for('workers.create') }}" class="inline" style="margin-bottom:.6rem;">
+			<input type="text" name="name" placeholder="Name" />
+			<select name="project_id" required>
+				{% for p in projects or [] %}
+					<option value="{{ p.id }}">{{ p.name }}</option>
+				{% endfor %}
+			</select>
+			<select name="assistant_id">
+				<option value="">Assistant?</option>
+				{% for a in assistants or [] %}
+					<option value="{{ a.id }}">{{ a.name }}</option>
+				{% endfor %}
+			</select>
+			<button class="subtle" type="submit">Anlegen</button>
+		</form>
+		<table class="list" style="margin-top:0;">
+			<thead><tr><th>Name</th><th>Projekt</th><th>Runs</th><th style="width:40px;">&nbsp;</th></tr></thead>
+			<tbody>
+				{% for w in workers %}
+				<tr {% if current and current.id==w.id %}style="background:#f7faff;"{% endif %}>
+					<td onclick="window.location='{{ url_for('workers.view', worker_id=w.id) }}'" style="cursor:pointer;">{{ w.name }}</td>
+					<td onclick="window.location='{{ url_for('workers.view', worker_id=w.id) }}'" style="cursor:pointer; font-size:0.7rem; white-space:nowrap;">{{ w.project.name if w.project else '-' }}</td>
+					<td onclick="window.location='{{ url_for('workers.view', worker_id=w.id) }}'" style="cursor:pointer;">{{ w.logs.count() }}</td>
+					<td style="text-align:right;">
+						<form method="post" action="{{ url_for('workers.delete', worker_id=w.id) }}" onsubmit="return confirm('Worker löschen?');">
+							<button type="submit" class="outline" style="padding:2px 6px; font-size:0.6rem;">✕</button>
+						</form>
+					</td>
+				</tr>
+				{% else %}
+				<tr><td colspan="4">Keine Worker</td></tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	<!-- Rechte Spalte: Details -->
+	<div class="flex col gap" style="flex:1;">
+		{% if current %}
+		<div class="card" style="flex:0;">
+			<div class="card-header">Worker Details</div>
+			<div style="font-size:0.75rem; display:flex; flex-wrap:wrap; gap:0.8rem;">
+				<div><strong>ID:</strong> {{ current.id }}</div>
+				<div><strong>Name:</strong> {{ current.name }}</div>
+				<div><strong>Projekt:</strong> {{ current.project.name if current.project else '-' }}</div>
+				<div><strong>Assistant:</strong> {{ current.assistant.name if current.assistant else '-' }}</div>
+				<div><strong>Modell:</strong> {{ current.model }}</div>
+				<div><strong>Runs:</strong> {{ current.logs.count() }}</div>
+			</div>
+		</div>
+		<div class="card" style="flex:0;">
+			<div class="card-header">Run ausführen</div>
+			<form method="post" action="{{ url_for('workers.run', worker_id=current.id) }}" class="col" style="gap:0.4rem;">
+				<textarea name="prompt" placeholder="Frage oder Task" rows="3"></textarea>
+				<div class="flex gap-sm" style="justify-content:space-between; align-items:center;">
+					<span class="muted">Submit startet einen einzelnen Run.</span>
+					<button type="submit">Run</button>
+				</div>
+			</form>
+		</div>
+		<div class="card" style="flex:1; min-height:280px;">
+			<div class="card-header">Logs (neueste zuerst)</div>
+			<div class="scroll-y" style="max-height:300px;">
+					<table class="list" style="margin-top:0;">
+						<thead><tr><th>ID</th><th>Zeit</th><th>Input</th><th>Output</th><th>Files</th><th>RunID</th></tr></thead>
+					<tbody>
+						{% for l in logs or [] %}
+						<tr>
+							<td>{{ l.id }}</td>
+							<td style="white-space:nowrap;">{{ l.created_at.strftime('%H:%M:%S') if l.created_at else '' }}</td>
+							<td style="white-space:pre-wrap; max-width:180px; font-size:0.65rem;">{{ l.input_text }}</td>
+								<td style="white-space:pre-wrap; max-width:260px; font-size:0.65rem;">{{ l.output_text }}</td>
+								<td style="font-size:0.55rem; max-width:160px;">
+									{% if l.output_files %}
+										{% for fo in l.output_files %}
+											<a href="{{ url_for('files.download', file_id=fo.id) }}" style="display:inline-block; margin:2px 2px 0 0; font-size:0.55rem;">
+												{{ fo.filename[:14] }}{% if fo.filename|length > 14 %}…{% endif %}
+											</a>
+										{% endfor %}
+									{% elif l.output_file_ids %}
+										<span style="background:#eee; padding:2px 4px; border-radius:4px;">IDs: {{ l.output_file_ids }}</span>
+									{% else %}-{% endif %}
+								</td>
+								<td style="font-size:0.55rem;">{{ l.openai_run_id }}</td>
+						</tr>
+						{% else %}
+							<tr><td colspan="6" style="font-size:0.7rem;">Keine Logs</td></tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="flex gap" style="flex-wrap:wrap;">
+			<div class="card small" style="flex:1; min-width:200px;">
+				<div class="card-header">Worker Dateien</div>
+				{% set has_any = (current.files and current.files|length > 0) or (aggregated_output_files and aggregated_output_files|length > 0) %}
+				{% if has_any %}
+					<ul class="resource-list">
+						{# Zuerst dedizierte Worker Files #}
+						{% for f in current.files or [] %}
+							<li><a href="{{ url_for('files.download', file_id=f.id) }}">{{ f.filename }}</a></li>
+						{% endfor %}
+						{# Danach Output Files (falls vorhanden & nicht schon in Worker.files) #}
+						{% set worker_ids = current.files | map(attribute='id') | list if current.files else [] %}
+						{% for f in aggregated_output_files or [] %}
+							{% if f.id not in worker_ids %}
+								<li><a href="{{ url_for('files.download', file_id=f.id) }}">{{ f.filename }}</a></li>
+							{% endif %}
+						{% endfor %}
+					</ul>
+				{% else %}
+					<p class="muted" style="margin:0;">Keine</p>
+				{% endif %}
+			</div>
+			<div class="card small" style="flex:1; min-width:200px;">
+				<div class="card-header">Projekt Dateien</div>
+				{% if current.project and current.project.files %}
+					<ul class="resource-list">
+						{% for pf in current.project.files %}<li>{{ pf.filename }}</li>{% endfor %}
+					</ul>
+				{% else %}
+					<p class="muted" style="margin:0;">Keine</p>
+				{% endif %}
+			</div>
+		</div>
+		{% else %}
+		<div class="card" style="flex:1;">
+			<div class="card-header">Hinweis</div>
+			<p style="font-size:0.8rem; margin:0;">Wähle links einen Worker aus oder lege einen neuen an.</p>
+		</div>
+		{% endif %}
+	</div>
+</div>
+<p style="margin-top:1rem;"><a href="/projects/" style="font-size:0.7rem;">← Zurück zu Projekten</a></p>
+{% endblock %}

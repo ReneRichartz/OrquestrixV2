@@ -1,3 +1,10 @@
+.env
+__pycache__/
+instance/*.db
+*.pyc
+*.sqlite3
+venv/
+.DS_Store
 frontend/node_modules
 frontend/dist
 # Byte-compiled / optimized / DLL files

@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Chat: {{ chat.title }}</h1>
+<div class="chat-layout">
+  <div class="chat-main" style="flex:3; display:flex; flex-direction:column; gap:0.7rem;">
+    <div class="chat-window" style="flex:1;">
+    {% for m in messages %}
+      <div class="msg {{ m.role }}">
+        <strong>{{ m.role }}:</strong> {{ m.content | e }}
+      </div>
+    {% endfor %}
+  </div>
+    <form method="post" class="chat-input" style="margin:0;">
+      <div style="display:flex; gap:0.6rem; align-items:flex-start;">
+        <textarea name="message" rows="3" placeholder="Nachricht..." style="flex:1; min-height:70px;"></textarea>
+        <button type="submit" style="height:38px; align-self:flex-end;">Senden</button>
+      </div>
+    </form>
+  </div>
+  <div class="chat-sidebar" style="margin-top:2px;">
+    <h4 style="margin-top:0;">Chat Rolle</h4>
+    <form method="post" action="{{ url_for('admin.chat_roles_assign', chat_id=chat.id) }}">
+      <select name="role_id" style="width:100%;">
+        <option value="">-- wählen --</option>
+        {% for r in chat_roles %}
+          <option value="{{ r.id }}" {% if chat.chat_role and chat.chat_role.id == r.id %}selected{% endif %}>{{ r.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" style="margin-top:0.3rem;">Rolle setzen</button>
+    </form>
+    {% if chat.chat_role %}
+      <div style="margin-top:0.4rem; font-size:0.7rem; background:#fff; padding:4px; border:1px solid #ccc;">
+        <strong>{{ chat.chat_role.name }}</strong><br/>
+        <span style="opacity:.7;">Model: {{ chat.chat_role.model }}</span>
+      </div>
+    {% endif %}
+    <hr/>
+    <h4>Projekt</h4>
+    <form method="post" action="{{ url_for('chats.assign_project', chat_id=chat.id) }}">
+      <select name="project_id" style="width:100%;">
+        <option value="">-- kein Projekt --</option>
+        {% for p in all_projects %}
+          <option value="{{ p.id }}" {% if chat.project and chat.project.id == p.id %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" style="margin-top:0.3rem;">Zuweisen</button>
+    </form>
+    <hr/>
+    <h4>Vector Stores</h4>
+    <form method="post">
+      <input type="hidden" name="vector_update" value="1" />
+      <div class="vs-list" style="max-height:140px; overflow:auto; border:1px solid #A7A9AC; padding:4px; background:#fff;">
+        {% for v in all_vectors %}
+          <label style="display:block; font-size:0.75rem;">
+            <input type="checkbox" name="vectors" value="{{ v.id }}" {% if v in chat.vector_stores %}checked{% endif %}/> {{ v.name }}
+          </label>
+        {% else %}
+          <span style="font-size:0.75rem;">Keine Vector Stores</span>
+        {% endfor %}
+      </div>
+      <button type="submit" style="margin-top:0.3rem;">Speichern</button>
+    </form>
+    {% if chat.files or (chat.project and chat.project.files) %}
+      <hr/>
+      <h4>Datei Kontext</h4>
+      <div style="max-height:120px; overflow:auto; border:1px solid #A7A9AC; background:#fff; padding:4px;">
+        {% for f in chat.files %}
+          <div style="font-size:0.65rem;">📄 {{ f.filename }}</div>
+        {% endfor %}
+        {% if chat.project %}
+          {% for pf in chat.project.files %}
+            {% if not pf in chat.files %}
+              <div style="font-size:0.65rem; opacity:0.65;">🔗 {{ pf.filename }}</div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% endif %}
+    <hr/>
+    <h4>Meta</h4>
+    <div style="font-size:0.7rem; line-height:1.3; background:#fff; padding:6px 8px; border:1px solid #ccc; border-radius:4px;">
+      <div><strong>Model:</strong> {% if chat.chat_role %}{{ chat.chat_role.model }} <span style="font-size:0.6rem;opacity:0.65;">(Rolle)</span>{% else %}{{ chat.model }}{% endif %}</div>
+      <div><strong>Tokens max:</strong> {{ chat.max_output_tokens }}</div>
+    </div>
+  </div>
+ </div>
+<p><a href="/chats/">Zur Übersicht</a></p>
+{% endblock %}

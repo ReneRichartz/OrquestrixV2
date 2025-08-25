@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Vector Stores</h1>
+<form method="post" action="{{ url_for('admin.vectors_create') }}">
+  <input type="text" name="name" placeholder="Name" />
+  <button type="submit">Erstellen</button>
+</form>
+<form method="post" action="{{ url_for('admin.vectors_sync') }}" style="margin-top:0.5rem;">
+  <button type="submit">Remote Sync</button>
+</form>
+<table class="list" style="margin-top:1rem;">
+  <thead><tr><th>ID</th><th>OpenAI ID</th><th>Name</th><th>Chats</th><th>Files</th><th>Aktionen</th></tr></thead>
+  <tbody>
+  {% for v in vectors %}
+    <tr>
+      <td>{{ v.id }}</td>
+      <td style="font-size:0.75rem">{{ v.openai_vector_store_id or '-' }}</td>
+      <td>{{ v.name }}</td>
+  <td>{{ v.chats|length }}</td>
+      <td>{{ v.files|length }}</td>
+      <td>
+        <form method="post" action="{{ url_for('admin.vectors_delete', vector_id=v.id) }}" onsubmit="return confirm('Löschen?');" style="display:inline;">
+          <button type="submit">Del</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5">Keine Vector Stores</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p><a href="{{ url_for('admin.index') }}">Zurück Admin</a></p>
+{% endblock %}

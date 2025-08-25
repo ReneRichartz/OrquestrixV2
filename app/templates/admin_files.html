@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Files (nicht zugeordnet)</h1>
+<p style="font-size:0.8rem; opacity:0.7;">Es werden nur Dateien angezeigt, die keinem Vector Store zugeordnet sind.</p>
+<form method="post" action="{{ url_for('admin.files_upload') }}" enctype="multipart/form-data">
+  <input type="file" name="file" />
+  <button type="submit">Upload</button>
+</form>
+<form method="post" action="{{ url_for('admin.files_sync') }}" style="margin-top:0.5rem; display:inline-block;">
+  <button type="submit">Remote Files Pull</button>
+</form>
+<form method="post" action="{{ url_for('admin.vectors_files_sync') }}" style="margin-top:0.5rem; display:inline-block; margin-left:0.5rem;">
+  <button type="submit">Vector File Mapping Sync</button>
+</form>
+<table class="list" style="margin-top:1rem;">
+  <thead><tr><th>ID</th><th>OpenAI ID</th><th>Name</th><th>Size</th><th>Vectors (Count)</th><th>Cache IDs</th><th>Aktionen</th></tr></thead>
+  <tbody>
+  {% for f in files %}
+    <tr>
+      <td>{{ f.id }}</td>
+      <td style="font-size:0.7rem">{{ f.openai_file_id or '-' }}</td>
+      <td>{{ f.filename }}</td>
+      <td>{% if f.size_bytes %}{{ f.size_bytes }} B{% else %}-{% endif %}</td>
+  <td>{{ f.vector_stores|length }}</td>
+  <td style="font-size:0.6rem; max-width:140px; overflow:auto;">{{ f.vector_store_ids_cache or '-' }}</td>
+      <td>
+        <form method="post" action="{{ url_for('admin.files_delete', file_id=f.id) }}" style="display:inline;" onsubmit="return confirm('Löschen?');">
+          <button type="submit">Del</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6">Keine Dateien</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<h3>Datei an Vector Store anhängen</h3>
+{% if files %}
+  <form method="post" action="{{ url_for('admin.files_attach') }}">
+    <label>Datei:
+      <select name="file_id">
+        {% for f in files %}
+          <option value="{{ f.id }}">{{ f.filename }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Vector Store:
+      <select name="vector_store_id">
+        {% for v in vectors %}
+          <option value="{{ v.id }}">{{ v.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Anhängen</button>
+  </form>
+{% else %}
+  <p style="font-size:0.8rem; opacity:0.7;">Aktuell sind alle Dateien bereits einem Vector Store zugeordnet. Entferne eine Zuordnung unten, um erneut anzuhängen.</p>
+{% endif %}
+
+<h3>Zuordnung entfernen</h3>
+<form method="post" action="{{ url_for('admin.files_detach') }}">
+  <label>File:
+    <select name="file_id">
+      {% for v in vectors %}
+        {% for f in v.files %}
+          <option value="{{ f.id }}">{{ f.filename }} ({{ v.name }})</option>
+        {% endfor %}
+      {% endfor %}
+    </select>
+  </label>
+  <label>Vector Store:
+    <select name="vector_store_id">
+      {% for v in vectors %}
+        {% if v.files %}
+          <option value="{{ v.id }}">{{ v.name }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Detach</button>
+</form>
+<p style="margin-top:1rem;"><a href="{{ url_for('admin.index') }}">Zurück Admin</a></p>
+{% endblock %}
